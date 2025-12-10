@@ -26,7 +26,7 @@ rule "terraform_typed_variables" {
 }
 
 rule "terraform_unused_declarations" {
-  enabled = true
+  enabled = false  # Disabled for template - enable in actual modules
 }
 
 rule "terraform_comment_syntax" {
