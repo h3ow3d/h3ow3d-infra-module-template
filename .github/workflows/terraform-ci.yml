@@ -16,7 +16,7 @@ jobs:
   terraform-format:
     name: Terraform Format Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
   terraform-syntax:
     name: Terraform Syntax Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
   tflint:
     name: TFLint
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,20 +67,22 @@ jobs:
   tfsec:
     name: TFSec Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           soft_fail: true
 
   checkov:
     name: Checkov Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -96,7 +98,7 @@ jobs:
     name: Generate Documentation
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,7 +120,7 @@ jobs:
     strategy:
       matrix:
         example: [basic, complete]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -145,7 +147,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [terraform-format, terraform-syntax, tflint, test-examples]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -158,11 +160,11 @@ jobs:
         run: |
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-          
+
           # Parse version
           VERSION=${LATEST_TAG#v}
           IFS='.' read -r major minor patch <<< "$VERSION"
-          
+
           # Check for breaking changes
           if [[ "${{ github.event.head_commit.message }}" =~ BREAKING\ CHANGE || "${{ github.event.head_commit.message }}" =~ \! ]]; then
             NEW_MAJOR=$((major + 1))
@@ -173,7 +175,7 @@ jobs:
             NEW_TAG="v${major}.${minor}.${NEW_PATCH}"
             echo "version_type=patch" >> $GITHUB_OUTPUT
           fi
-          
+
           echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
       - name: Create and push tag
@@ -192,20 +194,20 @@ jobs:
           name: Release ${{ steps.get_tag.outputs.new_tag }}
           body: |
             ## Changes
-            
+
             ${{ github.event.head_commit.message }}
-            
+
             ---
-            
+
             **Version Type:** ${{ steps.get_tag.outputs.version_type }}
             **Previous Version:** ${{ steps.get_tag.outputs.latest_tag }}
-            
+
             ## Usage
-            
+
             \`\`\`hcl
             module "example" {
               source = "git::https://github.com/${{ github.repository }}.git?ref=${{ steps.get_tag.outputs.new_tag }}"
-              
+
               project_name = "myproject"
               environment  = "production"
             }
